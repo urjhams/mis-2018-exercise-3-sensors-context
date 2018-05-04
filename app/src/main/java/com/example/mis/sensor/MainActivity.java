@@ -1,25 +1,26 @@
 package com.example.mis.sensor;
 
+import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.Window;
 import android.view.WindowManager;
 
-import com.example.mis.sensor.FFT;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GridLabelRenderer;
 import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -40,7 +41,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LineGraphSeries<DataPoint> seriesM;
 
     private static double currentX = 0;
-    private ThreadPoolExecutor liveChartExecutor;
     private LinkedBlockingDeque<Double> xQueue = new LinkedBlockingDeque<>(10);
     private LinkedBlockingDeque<Double> yQueue = new LinkedBlockingDeque<>(10);
     private LinkedBlockingDeque<Double> zQueue = new LinkedBlockingDeque<>(10);
@@ -55,7 +55,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getSupportActionBar().hide();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Objects.requireNonNull(getSupportActionBar()).hide();
+        }
 
         setContentView(R.layout.activity_main);
 
@@ -88,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //-------------- start chart theard
 
-        liveChartExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ThreadPoolExecutor liveChartExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         if (liveChartExecutor != null) {
             liveChartExecutor.execute(
                     new AccelerationChart(
@@ -172,6 +174,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * fft(double[] x, double[] y)
      */
 
+    @SuppressLint("StaticFieldLeak")
     private class FFTAsynctask extends AsyncTask<double[], Void, double[]> {
 
         private int wsize; //window size must be power of 2
@@ -228,6 +231,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
 
+    @SuppressLint("HandlerLeak")
     private class AccelerationChartHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
@@ -235,17 +239,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Double accelerationY2 = 0.0D;
             Double accelerationY3 = 0.0D;
             Double accelerationY4 = 0.0D;
-            if (!msg.getData().getString("X_VALUE").equals("null")) {
-                accelerationY1 = (Double.parseDouble(msg.getData().getString("X_VALUE")));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (!Objects.equals(msg.getData().getString("X_VALUE"), "null")) {
+                    accelerationY1 = (Double.parseDouble(msg.getData().getString("X_VALUE")));
+                }
             }
-            if (!msg.getData().getString("Y_VALUE").equals("null")) {
-                accelerationY2 = (Double.parseDouble(msg.getData().getString("Y_VALUE")));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (!Objects.requireNonNull(msg.getData().getString("Y_VALUE")).equals("null")) {
+                    accelerationY2 = (Double.parseDouble(msg.getData().getString("Y_VALUE")));
+                }
             }
-            if (!msg.getData().getString("Z_VALUE").equals("null")) {
-                accelerationY3 = (Double.parseDouble(msg.getData().getString("Z_VALUE")));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (!Objects.requireNonNull(msg.getData().getString("Z_VALUE")).equals("null")) {
+                    accelerationY3 = (Double.parseDouble(msg.getData().getString("Z_VALUE")));
+                }
             }
-            if (!msg.getData().getString("M_VALUE").equals("null")) {
-                accelerationY4 = (Double.parseDouble(msg.getData().getString("M_VALUE")));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                if (!Objects.requireNonNull(msg.getData().getString("M_VALUE")).equals("null")) {
+                    accelerationY4 = (Double.parseDouble(msg.getData().getString("M_VALUE")));
+                }
             }
             seriesX.appendData(new DataPoint(currentX, accelerationY1),true,500);
             seriesY.appendData(new DataPoint(currentX, accelerationY2),true,500);
