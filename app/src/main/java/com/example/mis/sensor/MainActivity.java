@@ -54,19 +54,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Objects.requireNonNull(getSupportActionBar()).hide();
         }
-
         setContentView(R.layout.activity_main);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        prepareSensor();
+        prepareGraph();
 
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        //initiate and fill example array with random values
+        rndAccExamplevalues = new double[64];
+        randomFill(rndAccExamplevalues);
+        new FFTAsynctask(64).execute(rndAccExamplevalues);
+    }
 
+    private void prepareSensor() {
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        accelerometer = sensorManager != null ? sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) : null;
+        accelerometer = sensorManager != null ?
+                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) :
+                null;
+    }
 
-        //---------------graph init
+    private void prepareGraph() {
+        //--------------- graph init
 
         GraphView graphX = findViewById(R.id.graphX);
         GraphView graphY = findViewById(R.id.graphY);
@@ -82,25 +93,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         seriesM = new LineGraphSeries<>();
         initSeries(seriesM,Color.MAGENTA);
 
-        settingSyleOf(graphX,"X axis",-20,20,seriesX);
-        settingSyleOf(graphY,"Y axis",-20,20,seriesY);
-        settingSyleOf(graphZ,"Z axis",-20,20,seriesZ);
-        settingSyleOf(graphM,"Magnitude",0,60,seriesM);
+        setStyleOf(graphX,"X axis",-20,20,seriesX);
+        setStyleOf(graphY,"Y axis",-20,20,seriesY);
+        setStyleOf(graphZ,"Z axis",-20,20,seriesZ);
+        setStyleOf(graphM,"Magnitude",0,40,seriesM);
 
 
-        //-------------- start chart theard
+        //-------------- start chart thread
 
-        ThreadPoolExecutor liveChartExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        ThreadPoolExecutor liveChartExecutor =
+                (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         if (liveChartExecutor != null) {
             liveChartExecutor.execute(
                     new AccelerationChart(
                             new AccelerationChartHandler()));
         }
-
-        //initiate and fill example array with random values
-        rndAccExamplevalues = new double[64];
-        randomFill(rndAccExamplevalues);
-        new FFTAsynctask(64).execute(rndAccExamplevalues);
     }
 
     private void initSeries(LineGraphSeries<DataPoint> series, int color) {
@@ -108,11 +115,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         series.setDataPointsRadius(10);
     }
 
-    private void settingSyleOf(GraphView graph,String name,double minY,double maxY, LineGraphSeries<DataPoint> source) {
+    private void setStyleOf(GraphView graph,
+                            String name,
+                            double minY,
+                            double maxY,
+                            LineGraphSeries<DataPoint> source) {
         graph.addSeries(source);
         graph.setTitle(name);
         graph.getGridLabelRenderer().setGridStyle(GridLabelRenderer.GridStyle.HORIZONTAL);
-        //graph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
         graph.getGridLabelRenderer().setHorizontalLabelsColor(Color.WHITE);
 
         Viewport viewPort = graph.getViewport();
@@ -130,13 +140,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void getAccelerometer(SensorEvent event) {
+
         float[] values = event.values;
+
         double x = values[0];
         double y = values[1];
         double z = values[2];
-        double accelerationToSqrt = (x * x + y * y + z * z) / (SensorManager.GRAVITY_EARTH * SensorManager.GRAVITY_EARTH);
+
+        double accelerationToSqrt = (x * x + y * y + z * z) /
+                (SensorManager.GRAVITY_EARTH * SensorManager.GRAVITY_EARTH);
+
         currentAcceleration = Math.sqrt(accelerationToSqrt);
+
         double magnitude = Math.sqrt(x * x + y * y + z * z);
+
         xQueue.offer(x);
         yQueue.offer(y);
         zQueue.offer(z);
@@ -152,7 +169,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(this,
+                accelerometer,
+                SensorManager.SENSOR_DELAY_GAME);
     }
 
     @Override
@@ -164,7 +183,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
     }
 
 
@@ -191,9 +209,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             double[] realPart = values[0].clone(); // actual acceleration values
             double[] imagPart = new double[wsize]; // init empty
 
-            /**
-             * Init the FFT class with given window size and run it with your input.
-             * The fft() function overrides the realPart and imagPart arrays!
+            /*
+              Init the FFT class with given window size and run it with your input.
+              The fft() function overrides the realPart and imagPart arrays!
              */
             FFT fft = new FFT(wsize);
             fft.fft(realPart, imagPart);
@@ -241,28 +259,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Double accelerationY4 = 0.0D;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 if (!Objects.equals(msg.getData().getString("X_VALUE"), "null")) {
-                    accelerationY1 = (Double.parseDouble(msg.getData().getString("X_VALUE")));
+                    accelerationY1 =
+                            (Double.parseDouble(msg.getData().getString("X_VALUE")));
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 if (!Objects.requireNonNull(msg.getData().getString("Y_VALUE")).equals("null")) {
-                    accelerationY2 = (Double.parseDouble(msg.getData().getString("Y_VALUE")));
+                    accelerationY2 =
+                            (Double.parseDouble(msg.getData().getString("Y_VALUE")));
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 if (!Objects.requireNonNull(msg.getData().getString("Z_VALUE")).equals("null")) {
-                    accelerationY3 = (Double.parseDouble(msg.getData().getString("Z_VALUE")));
+                    accelerationY3 =
+                            (Double.parseDouble(msg.getData().getString("Z_VALUE")));
                 }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 if (!Objects.requireNonNull(msg.getData().getString("M_VALUE")).equals("null")) {
-                    accelerationY4 = (Double.parseDouble(msg.getData().getString("M_VALUE")));
+                    accelerationY4 =
+                            (Double.parseDouble(msg.getData().getString("M_VALUE")));
                 }
             }
-            seriesX.appendData(new DataPoint(currentX, accelerationY1),true,500);
-            seriesY.appendData(new DataPoint(currentX, accelerationY2),true,500);
-            seriesZ.appendData(new DataPoint(currentX, accelerationY3),true,500);
-            seriesM.appendData(new DataPoint(currentX, accelerationY4),true,500);
+            seriesX.appendData(new DataPoint(currentX, accelerationY1),
+                    true,
+                    500);
+            seriesY.appendData(new DataPoint(currentX, accelerationY2),
+                    true,
+                    500);
+            seriesZ.appendData(new DataPoint(currentX, accelerationY3),
+                    true,
+                    500);
+            seriesM.appendData(new DataPoint(currentX, accelerationY4),
+                    true,
+                    500);
             currentX += 5;
         }
     }
@@ -292,7 +322,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     ex.printStackTrace();
                     continue;
                 }
-                if (accelerationY1 == null || accelerationY2 == null || accelerationY3 == null || accelerationY4 == null) {
+                if (accelerationY1 == null ||
+                        accelerationY2 == null ||
+                        accelerationY3 == null ||
+                        accelerationY4 == null) {
                     continue;
                 }
 
