@@ -13,6 +13,7 @@ import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.WindowManager;
+import android.widget.SeekBar;
 
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GridLabelRenderer;
@@ -20,17 +21,14 @@ import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import java.util.LinkedList;
 import java.util.Objects;
-import java.util.Random;
+import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
-
-    //example variables
-    private double[] rndAccExamplevalues;
-    private double[] freqCounts;
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -39,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LineGraphSeries<DataPoint> seriesY;
     private LineGraphSeries<DataPoint> seriesZ;
     private LineGraphSeries<DataPoint> seriesM;
+    private LineGraphSeries<DataPoint> fftSeries;
 
     private static double currentX = 0;
     private LinkedBlockingDeque<Double> xQueue = new LinkedBlockingDeque<>(10);
@@ -46,7 +45,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LinkedBlockingDeque<Double> zQueue = new LinkedBlockingDeque<>(10);
     private LinkedBlockingDeque<Double> mQueue = new LinkedBlockingDeque<>(10);
 
+    private Queue<Double> xCalculateQueue = new LinkedList<>();
+    GraphView graphF;
+
     double currentAcceleration = 0;
+    int winSize = 64;
+    int sampleRate;
 
     public MainActivity() {
     }
@@ -54,20 +58,88 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Objects.requireNonNull(getSupportActionBar()).hide();
         }
+
         setContentView(R.layout.activity_main);
+
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        seekBarRegister();
         prepareSensor();
         prepareGraph();
-
-        //initiate and fill example array with random values
-        rndAccExamplevalues = new double[64];
-        randomFill(rndAccExamplevalues);
-        new FFTAsynctask(64).execute(rndAccExamplevalues);
     }
+
+    private void seekBarRegister() {
+        //------init
+        SeekBar rateBar = findViewById(R.id.rateBar);
+        SeekBar sizeBar = findViewById(R.id.WSizeBar);
+
+        //------configuration
+        sizeBar.setProgress(64);
+        sizeBar.setMax(1024);
+
+        //------ listener
+        rateBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int current = seekBar.getProgress();
+                if (current <= 64) {
+                    current = 64;
+                }
+                else if (current <= 128) {
+                    current = 128;
+                }
+                else if (current <= 256) {
+                    current = 256;
+                }
+                else if (current <= 512) {
+                    current = 512;
+                }
+                else if (current <= 1024) {
+                    current = 1024;
+                }
+                else {
+                    current = 1024;
+                }
+                seekBar.setProgress(current);
+                winSize = current;
+                graphF.removeAllSeries();
+                graphF.getViewport().setMaxX(winSize);
+            }
+        });
+    }
+    
 
     private void prepareSensor() {
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -79,10 +151,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void prepareGraph() {
         //--------------- graph init
 
-        GraphView graphX = findViewById(R.id.graphX);
-        GraphView graphY = findViewById(R.id.graphY);
-        GraphView graphZ = findViewById(R.id.graphZ);
+        GraphView graphAcceleration = findViewById(R.id.graphX);
         GraphView graphM = findViewById(R.id.graphM);
+        graphF = findViewById(R.id.fftGraph);
 
         seriesX = new LineGraphSeries<>();
         initSeries(seriesX,Color.RED);
@@ -92,11 +163,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         initSeries(seriesZ,Color.CYAN);
         seriesM = new LineGraphSeries<>();
         initSeries(seriesM,Color.MAGENTA);
+        fftSeries = new LineGraphSeries<>();
+        initSeries(fftSeries,Color.BLUE);
 
-        setStyleOf(graphX,"X axis",-20,20,seriesX);
-        setStyleOf(graphY,"Y axis",-20,20,seriesY);
-        setStyleOf(graphZ,"Z axis",-20,20,seriesZ);
-        setStyleOf(graphM,"Magnitude",0,40,seriesM);
+        setStyleOf(graphAcceleration,"x : red, y: green, z: cyan",
+                -20,20,seriesX,500);
+        setStyleOf(graphAcceleration,"x : red, y: green, z: cyan",
+                -20,20,seriesY,500);
+        setStyleOf(graphAcceleration,"x : red, y: green, z: cyan",
+                -20,20,seriesZ,500);
+        setStyleOf(graphM,"Magnitude",0,40,seriesM,500);
+        setStyleOf(graphF,"FFT",0,200,fftSeries,winSize);
 
 
         //-------------- start chart thread
@@ -119,7 +196,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             String name,
                             double minY,
                             double maxY,
-                            LineGraphSeries<DataPoint> source) {
+                            LineGraphSeries<DataPoint> source,
+                            int range) {
         graph.addSeries(source);
         graph.setTitle(name);
         graph.getGridLabelRenderer().setGridStyle(GridLabelRenderer.GridStyle.HORIZONTAL);
@@ -131,7 +209,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         viewPort.setXAxisBoundsManual(true);
         viewPort.setMinX(0);
-        viewPort.setMaxX(500);
+        viewPort.setMaxX(range);
 
 
         viewPort.setYAxisBoundsManual(true);
@@ -158,6 +236,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         yQueue.offer(y);
         zQueue.offer(z);
         mQueue.offer(magnitude);
+
+        xCalculateQueue.add(magnitude);
+        if (xCalculateQueue.size() == winSize + 1) {
+            xCalculateQueue.remove();
+            int index = 0;
+            double[] input = new double[winSize];
+            for (Double element : xCalculateQueue) {
+                input[index] = element;
+                index++;
+            }
+            new FFTAsynctask(winSize).execute(input);
+        }
     }
 
     @Override
@@ -169,9 +259,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
+        //******************************* because use the async task, should use delay from UI level
+        //******************************* to lower, cause if use fastest or game, async task
+        //******************************* will not catch the speed of change in win size var
+        //******************************* means it will give the values argument with old win size
+        //******************************* length
         sensorManager.registerListener(this,
                 accelerometer,
-                SensorManager.SENSOR_DELAY_GAME);
+                SensorManager.SENSOR_DELAY_UI);
     }
 
     @Override
@@ -198,8 +293,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         private int wsize; //window size must be power of 2
 
         // constructor to set window size
-        FFTAsynctask(int wsize) {
-            this.wsize = wsize;
+        FFTAsynctask(int wdsize) {
+            this.wsize = wdsize;
         }
 
         @Override
@@ -231,20 +326,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         @Override
         protected void onPostExecute(double[] values) {
             //hand over values to global variable after background task is finished
-            freqCounts = values;
-        }
-    }
+            int currentXAxis = 0;
+            DataPoint[] list = new DataPoint[winSize];
+            Double[] objArray = new Double[values.length];
+            for (int index = 0; index < values.length; index++) {
 
-
-
-
-    /**
-     * little helper function to fill example with random double values
-     */
-    public void randomFill(double[] array){
-        Random rand = new Random();
-        for(int i = 0; array.length > i; i++){
-            array[i] = rand.nextDouble();
+                DataPoint point = new DataPoint(currentXAxis, values[index]);
+                list[index] = point;
+                currentXAxis += 5;
+            }
+            fftSeries = new LineGraphSeries<>(list);
+            graphF.removeAllSeries();
+            graphF.addSeries(fftSeries);
         }
     }
 
@@ -257,6 +350,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Double accelerationY2 = 0.0D;
             Double accelerationY3 = 0.0D;
             Double accelerationY4 = 0.0D;
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 if (!Objects.equals(msg.getData().getString("X_VALUE"), "null")) {
                     accelerationY1 =
@@ -281,6 +375,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             (Double.parseDouble(msg.getData().getString("M_VALUE")));
                 }
             }
+
             seriesX.appendData(new DataPoint(currentX, accelerationY1),
                     true,
                     500);

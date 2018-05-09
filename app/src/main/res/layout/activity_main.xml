@@ -17,24 +17,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graphY"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_marginEnd="6dp"
-        android:layout_marginStart="6dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/graphX" />
-
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graphZ"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_marginEnd="6dp"
-        android:layout_marginStart="6dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/graphY" />
 
     <com.jjoe64.graphview.GraphView
@@ -45,7 +27,7 @@
         android:layout_marginStart="6dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/graphZ" />
+        app:layout_constraintTop_toBottomOf="@+id/graphX" />
 
     <TextView
         android:id="@+id/textSample"
@@ -87,12 +69,13 @@
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/textWinSize"
-        app:layout_constraintTop_toBottomOf="@+id/textSample" />
+        app:layout_constraintTop_toBottomOf="@+id/textSample"
+        android:max="4"/>
 
     <com.jjoe64.graphview.GraphView
         android:id="@+id/fftGraph"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="200dp"
         android:layout_marginEnd="6dp"
         android:layout_marginStart="6dp"
         android:layout_marginTop="8dp"
