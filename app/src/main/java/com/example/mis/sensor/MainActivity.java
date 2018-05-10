@@ -21,7 +21,6 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -63,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private boolean isPlaying = false;
     private boolean isAccelerationThinkMoving = false;
     private UserLocationState userState = UserLocationState.standing;
+    private boolean isFastestSensor = false;
 
     MediaPlayer joggingPlayer;
     MediaPlayer activitiesPlayer;
@@ -241,15 +241,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 switch (seekBar.getProgress()) {
                     case 0:
                         delay = SensorManager.SENSOR_DELAY_NORMAL;
+                        isFastestSensor = false;
                         break;
                     case 1:
                         delay = SensorManager.SENSOR_DELAY_UI;
+                        isFastestSensor = false;
                         break;
                     case 2:
                         delay = SensorManager.SENSOR_DELAY_GAME;
+                        isFastestSensor = false;
                         break;
                     case 3:
                         delay = SensorManager.SENSOR_DELAY_FASTEST;
+                        isFastestSensor = true;
                         break;
                 }
                 refreshSensor(delay);
@@ -345,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // cause too fast sensor means there will have the case
         // that the async task will have input array longer than execute post input
-        if (currentX % 100 == 0) {
+        if (currentX % ((isFastestSensor) ? 500 : 150) == 0) {
             int index = 0;
             double[] input = new double[winSize];
             for (Double element : xCalculateQueue) {
@@ -449,34 +453,39 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager.registerListener(this,accelerometer,delay);
     }
 
+    @SuppressLint("SetTextI18n")
     private void playingMusic() {
-        if (isPlaying && isAccelerationThinkMoving) {
-            switch (userState) {
-                case walking:
-                    statusTextView.setText("is Walking");
-                    if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
-                    if (!joggingPlayer.isPlaying()) joggingPlayer.start();
-                    break;
-                case running:
-                    statusTextView.setText("is Running or On Bycle");
-                    if (joggingPlayer.isPlaying()) joggingPlayer.pause();
-                    if (!activitiesPlayer.isPlaying()) activitiesPlayer.start();
-                    break;
-                case standing:
-                    statusTextView.setText("is Standing");
-                    if (joggingPlayer.isPlaying()) joggingPlayer.pause();
-                    if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
-                    break;
-                case onVehicle:
-                    statusTextView.setText("is on a car");
-                    if (joggingPlayer.isPlaying()) joggingPlayer.pause();
-                    if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
-                    break;
+        try {
+            if (isPlaying && isAccelerationThinkMoving) {
+                switch (userState) {
+                    case walking:
+                        statusTextView.setText("is Walking");
+                        if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                        if (!joggingPlayer.isPlaying()) joggingPlayer.start();
+                        break;
+                    case running:
+                        statusTextView.setText("is Running or On Bycle");
+                        if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                        if (!activitiesPlayer.isPlaying()) activitiesPlayer.start();
+                        break;
+                    case standing:
+                        statusTextView.setText("is Standing");
+                        if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                        if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                        break;
+                    case onVehicle:
+                        statusTextView.setText("is on a car");
+                        if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                        if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                        break;
+                }
+            } else {
+                statusTextView.setText("is Standing");
+                if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
             }
-        } else {
-            statusTextView.setText("is Standing");
-            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
-            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+        } catch (IllegalStateException ex) {
+            System.out.print("IllegalStateException: " + ex.getLocalizedMessage());
         }
     }
 
