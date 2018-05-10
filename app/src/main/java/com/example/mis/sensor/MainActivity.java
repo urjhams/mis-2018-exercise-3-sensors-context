@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private boolean isAccelerationThinkMoving = false;
     private UserLocationState userState = UserLocationState.standing;
     private boolean isFastestSensor = false;
+    private Location lastLocation;
 
     MediaPlayer joggingPlayer;
     MediaPlayer activitiesPlayer;
@@ -141,6 +142,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onLocationChanged(Location location) {
         double currentSpeed = 0;
+        double caculatedSpeed = 0;
+        if (lastLocation != null) {
+            double elapseTime = (location.getTime() - lastLocation.getTime()) / 1000;
+            caculatedSpeed = lastLocation.distanceTo(location) / elapseTime;
+        }
+        lastLocation = location;
+
+        currentSpeed = location.hasSpeed() ? location.getSpeed() : caculatedSpeed;
+
         if (location != null) {
             currentSpeed = location.getSpeed() * 3600 / 1000;   // from m/s to km/h
         }
@@ -456,34 +466,59 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @SuppressLint("SetTextI18n")
     private void playingMusic() {
         try {
-            if (isPlaying && isAccelerationThinkMoving) {
-                switch (userState) {
-                    case walking:
-                        statusTextView.setText("is Walking");
-                        if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
-                        if (!joggingPlayer.isPlaying()) joggingPlayer.start();
-                        break;
-                    case running:
-                        statusTextView.setText("is Running or On Bycle");
-                        if (joggingPlayer.isPlaying()) joggingPlayer.pause();
-                        if (!activitiesPlayer.isPlaying()) activitiesPlayer.start();
-                        break;
-                    case standing:
-                        statusTextView.setText("is Standing");
-                        if (joggingPlayer.isPlaying()) joggingPlayer.pause();
-                        if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
-                        break;
-                    case onVehicle:
-                        statusTextView.setText("is on a car");
-                        if (joggingPlayer.isPlaying()) joggingPlayer.pause();
-                        if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
-                        break;
+            if(isPlaying) {
+                if (isAccelerationThinkMoving) {
+                    switch (userState) {
+                        case walking:
+                            statusTextView.setText("is Walking");
+                            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                            if (!joggingPlayer.isPlaying()) joggingPlayer.start();
+                            break;
+                        case running:
+                            statusTextView.setText("is Running or On Bycle");
+                            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                            if (!activitiesPlayer.isPlaying()) activitiesPlayer.start();
+                            break;
+                        case standing:
+                            statusTextView.setText("is Standing");
+                            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                            break;
+                        case onVehicle:
+                            statusTextView.setText("is on a car");
+                            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                            break;
+                    }
+                } else {
+                    switch (userState) {
+                        case walking:
+                            statusTextView.setText("seem u re not walking");
+                            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                        case running:
+                            statusTextView.setText("seem u re in a vehicle");
+                            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                            break;
+                        case standing:
+                            statusTextView.setText("is Standing");
+                            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                            break;
+                        case onVehicle:
+                            statusTextView.setText("is on a car");
+                            if (joggingPlayer.isPlaying()) joggingPlayer.pause();
+                            if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
+                            break;
+                    }
                 }
             } else {
-                statusTextView.setText("is Standing");
+                statusTextView.setText("");
                 if (joggingPlayer.isPlaying()) joggingPlayer.pause();
                 if (activitiesPlayer.isPlaying()) activitiesPlayer.pause();
             }
+
         } catch (IllegalStateException ex) {
             System.out.print("IllegalStateException: " + ex.getLocalizedMessage());
         }
