@@ -9,25 +9,13 @@
     <com.jjoe64.graphview.GraphView
         android:id="@+id/graphX"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="200dp"
         android:layout_marginEnd="6dp"
         android:layout_marginStart="6dp"
         android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
-        app:layout_constraintTop_toBottomOf="@+id/graphY" />
-
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graphM"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_marginEnd="6dp"
-        android:layout_marginStart="6dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/graphX" />
 
     <TextView
         android:id="@+id/textSample"
@@ -37,7 +25,7 @@
         android:layout_marginTop="8dp"
         android:text="Sample rate"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/graphM" />
+        app:layout_constraintTop_toBottomOf="@+id/graphX" />
 
     <TextView
         android:id="@+id/textWinSize"
@@ -58,7 +46,7 @@
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/textSample"
-        app:layout_constraintTop_toBottomOf="@+id/graphM" />
+        app:layout_constraintTop_toBottomOf="@+id/graphX" />
 
     <SeekBar
         android:id="@+id/WSizeBar"
@@ -95,7 +83,19 @@
         android:layout_marginTop="12dp"
         android:gravity="center_horizontal|center_vertical"
         android:background="@drawable/player_round_button"
-        android:text="Music"
+        android:text="Play"
         android:textColor="@android:color/white"/>
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnPlayer" />
 
 </android.support.constraint.ConstraintLayout>
